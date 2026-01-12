@@ -1,0 +1,222 @@
+1 - pip install --pre paddlepaddle-gpu -i https://www.paddlepaddle.org.cn/packages/nightly/cu118/
+
+python3 -m pip install paddlepaddle-gpu==3.2.2 -i https://www.paddlepaddle.org.cn/packages/stable/cu126/
+
+!python3 -m pip install paddlepaddle-gpu==3.2.2 -i https://www.paddlepaddle.org.cn/packages/stable/cu126/
+
+2 - !pip install -U "paddleocr[doc-parser]"
+3 - pip install --pre safetensors==0.6.2
+
+
+
+import os
+import time
+from paddleocr import PaddleOCRVL
+
+# ====== 根据你的模型获取方式，选择其中一种配置 ======
+# A. 如果你让代码自动下载模型（对应方式一），使用此配置：
+#pipeline = PaddleOCRVL(
+#    use_layout_detection=True,  # 启用版面分析
+#    use_doc_orientation_classify=False,  # 根据需求启用方向分类
+#    use_doc_unwarping=False       # 根据需求启用图像矫正
+#)
+
+# B. 如果你已手动下载模型（对应方式二），使用此配置：
+# 假设模型下载到当前目录下的 `paddle_models` 文件夹
+layout_model_path = './models/PaddleOCR-VL/PP-DocLayoutV2'
+vl_rec_model_path = './models/PaddleOCR-VL'
+pipeline = PaddleOCRVL(
+     layout_detection_model_dir=layout_model_path,
+     vl_rec_model_dir=vl_rec_model_path,
+     doc_orientation_classify_model_dir=layout_model_path,  # 方向分类和矫正模型常与布局模型共用
+     doc_unwarping_model_dir=layout_model_path,
+     use_layout_detection=True,
+)
+# ====== 配置结束 ======
+
+# 指定要识别的图片路径
+img_path = 'table.png'  # 替换为你的图片路径
+output_save_dir = './output'  # 结果保存目录
+os.makedirs(output_save_dir, exist_ok=True)
+
+# 执行预测
+print("开始解析图片...")
+start_time = time.time()
+print(f"【{time.strftime('%Y-%m-%d %H:%M:%S')}】开始解析图片: {img_path}")
+output = pipeline.predict(img_path)
+
+# 处理并保存结果
+for idx, page_res in enumerate(output):
+    print(f"\n--- 第 {idx+1} 页结果 ---")
+    # 1. 打印结构化文本信息到控制台
+    page_res.print()
+    
+    # 2. 保存为JSON文件（包含详细的结构、坐标、置信度等信息）
+    json_path = os.path.join(output_save_dir, f'page_{idx+1}_result.json')
+    page_res.save_to_json(save_path=json_path)
+    print(f"JSON结果已保存至: {json_path}")
+    
+    # 3. 保存为Markdown文件（便于阅读的格式化文本）
+    md_path = os.path.join(output_save_dir, f'page_{idx+1}_result.md')
+    page_res.save_to_markdown(save_path=md_path)
+    print(f"Markdown结果已保存至: {md_path}")
+
+end_time = time.time()
+elapsed = end_time - start_time
+
+print(f"\n【{time.strftime('%Y-%m-%d %H:%M:%S')}】解析完成！")
+print(f"✅ 总耗时: {elapsed:.2f} 秒")
+
+--------------------------------------------------------------
+!python3 -m pip install paddlepaddle-gpu==3.2.2 -i https://www.paddlepaddle.org.cn/packages/stable/cu126/
+
+import paddle
+paddle.utils.run_check()
+
+pip install paddleocr
+
+from paddleocr import PaddleOCRVL
+print(PaddleOCRVL)
+
+pip uninstall paddlex -y
+
+pip install "paddlex[ocr]"
+
+import paddle
+print(paddle.utils.run_check())
+
+import os
+import time
+from paddleocr import PaddleOCRVL
+
+# ====== 根据你的模型获取方式，选择其中一种配置 ======
+# A. 如果你让代码自动下载模型（对应方式一），使用此配置：
+#pipeline = PaddleOCRVL(
+#    use_layout_detection=True,  # 启用版面分析
+#    use_doc_orientation_classify=False,  # 根据需求启用方向分类
+#    use_doc_unwarping=False       # 根据需求启用图像矫正
+#)
+
+# B. 如果你已手动下载模型（对应方式二），使用此配置：
+# 假设模型下载到当前目录下的 `paddle_models` 文件夹
+layout_model_path = './models/PaddleOCR-VL/PP-DocLayoutV2'
+vl_rec_model_path = './models/PaddleOCR-VL'
+pipeline = PaddleOCRVL(
+     layout_detection_model_dir=layout_model_path,
+     vl_rec_model_dir=vl_rec_model_path,
+     doc_orientation_classify_model_dir=layout_model_path,  # 方向分类和矫正模型常与布局模型共用
+     doc_unwarping_model_dir=layout_model_path,
+     use_layout_detection=True,
+)
+# ====== 配置结束 ======
+
+# 指定要识别的图片路径
+img_path = 'table.png'  # 替换为你的图片路径
+output_save_dir = './output'  # 结果保存目录
+os.makedirs(output_save_dir, exist_ok=True)
+
+# 执行预测
+print("开始解析图片...")
+start_time = time.time()
+print(f"【{time.strftime('%Y-%m-%d %H:%M:%S')}】开始解析图片: {img_path}")
+output = pipeline.predict(img_path)
+
+# 处理并保存结果
+for idx, page_res in enumerate(output):
+    print(f"\n--- 第 {idx+1} 页结果 ---")
+    # 1. 打印结构化文本信息到控制台
+    page_res.print()
+    
+    # 2. 保存为JSON文件（包含详细的结构、坐标、置信度等信息）
+    json_path = os.path.join(output_save_dir, f'page_{idx+1}_result.json')
+    page_res.save_to_json(save_path=json_path)
+    print(f"JSON结果已保存至: {json_path}")
+    
+    # 3. 保存为Markdown文件（便于阅读的格式化文本）
+    md_path = os.path.join(output_save_dir, f'page_{idx+1}_result.md')
+    page_res.save_to_markdown(save_path=md_path)
+    print(f"Markdown结果已保存至: {md_path}")
+
+end_time = time.time()
+elapsed = end_time - start_time
+
+print(f"\n【{time.strftime('%Y-%m-%d %H:%M:%S')}】解析完成！")
+print(f"✅ 总耗时: {elapsed:.2f} 秒")
+
+-------------------------------------H800----------------------------
+!python3 -m pip install paddlepaddle-gpu==3.2.2 -i https://www.paddlepaddle.org.cn/packages/stable/cu126/
+
+import paddle
+paddle.utils.run_check()
+
+pip install paddleocr
+
+from paddleocr import PaddleOCRVL
+print(PaddleOCRVL)
+
+pip uninstall paddlex -y
+
+pip install "paddlex[ocr]"
+
+import paddle
+print(paddle.utils.run_check())
+
+import os
+import time
+from paddleocr import PaddleOCRVL
+
+# ====== 根据你的模型获取方式，选择其中一种配置 ======
+# A. 如果你让代码自动下载模型（对应方式一），使用此配置：
+#pipeline = PaddleOCRVL(
+#    use_layout_detection=True,  # 启用版面分析
+#    use_doc_orientation_classify=False,  # 根据需求启用方向分类
+#    use_doc_unwarping=False       # 根据需求启用图像矫正
+#)
+
+# B. 如果你已手动下载模型（对应方式二），使用此配置：
+# 假设模型下载到当前目录下的 `paddle_models` 文件夹
+layout_model_path = './models/PaddleOCR-VL/PP-DocLayoutV2'
+vl_rec_model_path = './models/PaddleOCR-VL'
+pipeline = PaddleOCRVL(
+     layout_detection_model_dir=layout_model_path,
+     vl_rec_model_dir=vl_rec_model_path,
+     doc_orientation_classify_model_dir=layout_model_path,  # 方向分类和矫正模型常与布局模型共用
+     doc_unwarping_model_dir=layout_model_path,
+     use_layout_detection=True,
+)
+# ====== 配置结束 ======
+
+# 指定要识别的图片路径
+img_path = 'table.png'  # 替换为你的图片路径
+output_save_dir = './output'  # 结果保存目录
+os.makedirs(output_save_dir, exist_ok=True)
+
+# 执行预测
+print("开始解析图片...")
+start_time = time.time()
+print(f"【{time.strftime('%Y-%m-%d %H:%M:%S')}】开始解析图片: {img_path}")
+output = pipeline.predict(img_path)
+
+# 处理并保存结果
+for idx, page_res in enumerate(output):
+    print(f"\n--- 第 {idx+1} 页结果 ---")
+    # 1. 打印结构化文本信息到控制台
+    page_res.print()
+    
+    # 2. 保存为JSON文件（包含详细的结构、坐标、置信度等信息）
+    json_path = os.path.join(output_save_dir, f'page_{idx+1}_result.json')
+    page_res.save_to_json(save_path=json_path)
+    print(f"JSON结果已保存至: {json_path}")
+    
+    # 3. 保存为Markdown文件（便于阅读的格式化文本）
+    md_path = os.path.join(output_save_dir, f'page_{idx+1}_result.md')
+    page_res.save_to_markdown(save_path=md_path)
+    print(f"Markdown结果已保存至: {md_path}")
+
+end_time = time.time()
+elapsed = end_time - start_time
+
+print(f"\n【{time.strftime('%Y-%m-%d %H:%M:%S')}】解析完成！")
+print(f"✅ 总耗时: {elapsed:.2f} 秒")
+
+pip freeze > requirements.txt

@@ -1,0 +1,106 @@
+- 个人志在护理行业，性格与能力适配护理专业要求，申请转入学习。
+- 护理专业契合职业规划，且自身对护理领域有强烈学习意愿，故申请转出。
+- 向往护理职业的社会价值，希望通过专业学习投身医护服务，申请转入。
+这是豆包生成的
+
+1. 本专业学习后，兴趣更偏向临床护理，愿系统学护理技能投身一线。
+
+2. 相比信息管理后台，更渴望从事护理一线岗位，自身适配护理职业要求。
+
+3. 接触医疗知识后向往护理职业，希望结合医学基础学习护理专业。
+
+
+1、本专业学习后，对比护理专业兴趣更偏向临床护理，个人性格也更适配护理专业要求，希望能够学习护理技能投身一线；
+2、自己对护理领域有比较强烈学习意愿，更渴望从事护理一线岗位；
+3、本人出生农村，希望能够通过护理专业学习投身家乡医护服务，更加向往护理职业的社会价值
+
+
+pip install paddlepaddle-gpu==3.2.2 -i http://mirrors.aliyun.com/pypi/simple
+https://www.paddlepaddle.org.cn/packages/stable/cu126/paddlepaddle-gpu/paddlepaddle_gpu-3.3.0.dev20250904-cp312-cp312-linux_x86_64.whl
+
+pip install https://www.paddlepaddle.org.cn/packages/stable/cu126/paddlepaddle-gpu/paddlepaddle_gpu-3.2.2-cp312-cp312-linux_x86_64.whl
+paddlepaddle_gpu-3.2.2-cp310-cp310-linux_x86_64.whl
+
+
+pip install --pre paddlepaddle-gpu -i https://www.paddlepaddle.org.cn/packages/nightly/cu118/
+!pip install https://www.paddlepaddle.org.cn/packages/nightly/cu118/paddlepaddle_gpu-3.2.2-cp310-cp310-linux_x86_64.whl
+!python3 -m pip install paddlepaddle-gpu==3.2.2 -i https://www.paddlepaddle.org.cn/packages/stable/cu118/
+
+import paddle
+paddle.utils.run_check()
+
+pip install modelscope
+
+from modelscope import snapshot_download
+model_dir = snapshot_download('PaddlePaddle/PaddleOCR-VL', local_dir='./paddle_models')
+print(f"模型已下载至: {model_dir}")
+
+pip install paddleocr
+
+from paddleocr import PaddleOCRVL
+print(PaddleOCRVL)
+
+import os
+from paddleocr import PaddleOCRVL
+
+# ====== 根据你的模型获取方式，选择其中一种配置 ======
+# A. 如果你让代码自动下载模型（对应方式一），使用此配置：
+pipeline = PaddleOCRVL(
+    use_layout_detection=True,  # 启用版面分析
+    use_doc_orientation_classify=False,  # 根据需求启用方向分类
+    use_doc_unwarping=False       # 根据需求启用图像矫正
+)
+
+# B. 如果你已手动下载模型（对应方式二），使用此配置：
+# 假设模型下载到当前目录下的 `paddle_models` 文件夹
+# layout_model_path = './paddle_models/PP-DocLayoutV2'
+# vl_rec_model_path = './paddle_models/PaddleOCR-VL-0.9B'
+# pipeline = PaddleOCRVL(
+#     layout_detection_model_dir=layout_model_path,
+#     vl_rec_model_dir=vl_rec_model_path,
+#     doc_orientation_classify_model_dir=layout_model_path,  # 方向分类和矫正模型常与布局模型共用
+#     doc_unwarping_model_dir=layout_model_path,
+#     use_layout_detection=True,
+# )
+# ====== 配置结束 ======
+
+# 指定要识别的图片路径
+img_path = 'table.png'  # 替换为你的图片路径
+output_save_dir = './output'  # 结果保存目录
+os.makedirs(output_save_dir, exist_ok=True)
+
+# 执行预测
+print("开始解析图片...")
+output = pipeline.predict(img_path)
+
+# 处理并保存结果
+for idx, page_res in enumerate(output):
+    print(f"\n--- 第 {idx+1} 页结果 ---")
+    # 1. 打印结构化文本信息到控制台
+    page_res.print()
+    
+    # 2. 保存为JSON文件（包含详细的结构、坐标、置信度等信息）
+    json_path = os.path.join(output_save_dir, f'page_{idx+1}_result.json')
+    page_res.save_to_json(save_path=json_path)
+    print(f"JSON结果已保存至: {json_path}")
+    
+    # 3. 保存为Markdown文件（便于阅读的格式化文本）
+    md_path = os.path.join(output_save_dir, f'page_{idx+1}_result.md')
+    page_res.save_to_markdown(save_path=md_path)
+    print(f"Markdown结果已保存至: {md_path}")
+
+print("\n解析完成！")
+
+pip show paddlex
+pip install "paddlex[ocr]" --force-reinstall --no-deps
+pip uninstall paddlex -y
+pip install "paddlex[ocr]"
+pip show paddleocr
+
+-------------------------------------------------------
+import paddle
+paddle.utils.run_check()
+
+from paddleocr import PaddleOCRVL
+print(PaddleOCRVL)
+
