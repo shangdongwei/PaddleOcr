@@ -1,0 +1,68 @@
+import zipfile
+import xml.etree.ElementTree as ET
+import json
+from io import BytesIO
+
+def extract_summary_from_xmind(xmind_path):
+    with zipfile.ZipFile(xmind_path, 'r') as zf:
+        if 'content.xml' in zf.namelist():
+            return _parse_old_xmind(zf)
+        elif 'content.json' in zf.namelist():
+            return _parse_new_xmind(zf)
+        else:
+            raise ValueError("Unsupported XMind format: neither content.xml nor content.json found.")
+
+def _parse_old_xmind(zf):
+    content_data = zf.read('content.xml')
+    root = ET.fromstring(content_data)
+
+    # 尝试多种命名空间（2.0, 2.6, 或无命名空间）
+    possible_ns = [
+        {'x': 'urn:xmind:xmap:xmlns:content:2.0'},
+        {'x': 'urn:xmind:xmap:xmlns:content:2.6'},
+        {}  # 无命名空间
+    ]
+
+    summaries = []
+    for ns in possible_ns:
+        try:
+            if ns:
+                summaries = root.findall('.//x:summary', ns)
+            else:
+                summaries = root.findall('.//summary')
+            if summaries:
+                break
+        except Exception:
+            continue
+
+    result = []
+    for s in summaries:
+        result.append({
+            'range': s.get('range'),
+            'style': s.get('style'),
+            'content': (s.text or '').strip()
+        })
+    return result
+
+def _parse_new_xmind(zf):
+    # 新版 XMind 使用 JSON，但摘要信息结构复杂，通常不在顶层
+    # 需要递归遍历 topics 查找 "summary" 字段
+    content = json.loads(zf.read('content.json'))
+    
+    def find_summaries(obj, results):
+        if isinstance(obj, dict):
+            if obj.get('structureClass') == 'summary':
+                results.append({
+                    'range': obj.get('range'),
+                    'style': obj.get('styleId'),
+                    'content': ''  # 依然无直接内容
+                })
+            for v in obj.values():
+                find_summaries(v, results)
+        elif isinstance(obj, list):
+            for item in obj:
+                find_summaries(item, results)
+
+    summaries = []
+    find_summaries(content, summaries)
+    return summaries
