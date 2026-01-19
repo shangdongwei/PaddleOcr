@@ -1,0 +1,316 @@
+"""
+XMind 新版本（Zen/2020+）完整解析工具
+支持读取所有元素：title, topic, summary, labels, markers, notes 等
+"""
+
+import zipfile
+import json
+from typing import Dict, List, Any, Optional
+
+
+class XMindParser:
+    """XMind 文件解析器"""
+    
+    def __init__(self, xmind_file: str):
+        self.xmind_file = xmind_file
+        self.content = None
+        self.metadata = None
+        
+    def load(self) -> Dict:
+        """加载并解析 XMind 文件"""
+        with zipfile.ZipFile(self.xmind_file, 'r') as zip_ref:
+            # 读取 content.json
+            if 'content.json' in zip_ref.namelist():
+                with zip_ref.open('content.json') as f:
+                    self.content = json.load(f)
+            else:
+                raise ValueError("这不是一个有效的 XMind Zen/2020+ 文件")
+            
+            # 读取 metadata.json（可选）
+            if 'metadata.json' in zip_ref.namelist():
+                with zip_ref.open('metadata.json') as f:
+                    self.metadata = json.load(f)
+        
+        return self.content
+    
+    def get_all_sheets(self) -> List[Dict]:
+        """获取所有画布"""
+        if not self.content:
+            self.load()
+        return self.content
+    
+    def parse_topic(self, topic: Dict, level: int = 0) -> Dict:
+        """
+        递归解析主题，提取所有信息
+        
+        Args:
+            topic: 主题数据
+            level: 层级深度
+            
+        Returns:
+            包含完整信息的主题字典
+        """
+        result = {
+            'id': topic.get('id'),
+            'title': topic.get('title', ''),
+            'level': level,
+            
+            # 结构相关
+            'structureClass': topic.get('structureClass'),  # 结构类型
+            
+            # 标签和标记
+            'labels': topic.get('labels', []),  # 标签
+            'markers': self._parse_markers(topic.get('markers', [])),  # 图标标记
+            
+            # 备注
+            'notes': self._parse_notes(topic.get('notes')),
+            
+            # 样式
+            'style': topic.get('style'),
+            
+            # 超链接
+            'href': topic.get('href'),
+            
+            # 图片
+            'image': self._parse_image(topic.get('image')),
+            
+            # 子主题
+            'children': []
+        }
+        
+        # 递归解析子主题
+        if 'children' in topic and topic['children'].get('attached'):
+            for child in topic['children']['attached']:
+                result['children'].append(self.parse_topic(child, level + 1))
+        
+        return result
+    
+    def _parse_markers(self, markers: List) -> List[Dict]:
+        """解析标记（图标）"""
+        if not markers:
+            return []
+        
+        parsed_markers = []
+        for marker in markers:
+            parsed_markers.append({
+                'markerId': marker.get('markerId'),
+                'groupId': marker.get('groupId'),
+            })
+        return parsed_markers
+    
+    def _parse_notes(self, notes: Optional[Dict]) -> Optional[str]:
+        """解析备注"""
+        if not notes:
+            return None
+        
+        # 备注可能是纯文本或富文本
+        if 'plain' in notes:
+            return notes['plain'].get('content', '')
+        elif 'html' in notes:
+            return notes['html'].get('content', '')
+        
+        return None
+    
+    def _parse_image(self, image: Optional[Dict]) -> Optional[Dict]:
+        """解析图片信息"""
+        if not image:
+            return None
+        
+        return {
+            'src': image.get('src'),
+            'width': image.get('width'),
+            'height': image.get('height'),
+            'align': image.get('align'),
+        }
+    
+    def parse_summaries(self, sheet: Dict) -> List[Dict]:
+        """
+        解析概要（Summary）信息
+        
+        Args:
+            sheet: 画布数据
+            
+        Returns:
+            概要列表
+        """
+        summaries = []
+        
+        def find_summaries(topic: Dict):
+            """递归查找所有概要"""
+            # 检查当前主题的子节点中是否有概要
+            if 'children' in topic:
+                children_data = topic['children']
+                
+                # 概要通常在 'summaries' 字段中
+                if 'summaries' in children_data:
+                    for summary in children_data['summaries']:
+                        summaries.append({
+                            'id': summary.get('id'),
+                            'range': summary.get('range', ''),  # 概要范围
+                            'title': summary.get('title', ''),
+                            'style': summary.get('style'),
+                        })
+                
+                # 递归检查子主题
+                if 'attached' in children_data:
+                    for child in children_data['attached']:
+                        find_summaries(child)
+        
+        # 从根主题开始查找
+        if 'rootTopic' in sheet:
+            find_summaries(sheet['rootTopic'])
+        
+        return summaries
+    
+    def parse_relationships(self, sheet: Dict) -> List[Dict]:
+        """
+        解析关联线（Relationships）
+        
+        Args:
+            sheet: 画布数据
+            
+        Returns:
+            关联线列表
+        """
+        relationships = []
+        
+        if 'relationships' in sheet:
+            for rel in sheet['relationships']:
+                relationships.append({
+                    'id': rel.get('id'),
+                    'end1Id': rel.get('end1Id'),  # 起始主题ID
+                    'end2Id': rel.get('end2Id'),  # 终止主题ID
+                    'title': rel.get('title', ''),
+                    'style': rel.get('style'),
+                })
+        
+        return relationships
+    
+    def to_dict(self, include_all: bool = True) -> Dict:
+        """
+        转换为完整的字典结构
+        
+        Args:
+            include_all: 是否包含所有元素（summaries, relationships等）
+            
+        Returns:
+            完整的数据字典
+        """
+        if not self.content:
+            self.load()
+        
+        result = []
+        
+        for sheet in self.content:
+            sheet_data = {
+                'id': sheet.get('id'),
+                'title': sheet.get('title', ''),
+                'rootTopic': self.parse_topic(sheet['rootTopic']),
+            }
+            
+            if include_all:
+                # 添加概要
+                sheet_data['summaries'] = self.parse_summaries(sheet)
+                
+                # 添加关联线
+                sheet_data['relationships'] = self.parse_relationships(sheet)
+                
+                # 添加主题样式
+                if 'theme' in sheet:
+                    sheet_data['theme'] = sheet['theme']
+            
+            result.append(sheet_data)
+        
+        return {
+            'sheets': result,
+            'metadata': self.metadata
+        }
+    
+    def print_structure(self, topic: Dict = None, indent: int = 0):
+        """
+        打印思维导图结构（用于调试）
+        
+        Args:
+            topic: 主题数据，默认为根主题
+            indent: 缩进级别
+        """
+        if topic is None:
+            if not self.content:
+                self.load()
+            topic = self.parse_topic(self.content[0]['rootTopic'])
+        
+        prefix = "  " * indent
+        
+        # 打印标题
+        print(f"{prefix}• {topic['title']}")
+        
+        # 打印标签
+        if topic.get('labels'):
+            print(f"{prefix}  [标签: {', '.join(topic['labels'])}]")
+        
+        # 打印备注
+        if topic.get('notes'):
+            note_preview = topic['notes'][:50] + "..." if len(topic['notes']) > 50 else topic['notes']
+            print(f"{prefix}  [备注: {note_preview}]")
+        
+        # 打印标记
+        if topic.get('markers'):
+            print(f"{prefix}  [标记数: {len(topic['markers'])}]")
+        
+        # 递归打印子主题
+        for child in topic.get('children', []):
+            self.print_structure(child, indent + 1)
+
+
+def demo_usage():
+    """使用示例"""
+    # 创建解析器实例
+    parser = XMindParser('your_file.xmind')
+    
+    # 方法1：获取完整数据结构
+    full_data = parser.to_dict(include_all=True)
+    
+    # 访问各种数据
+    for sheet in full_data['sheets']:
+        print(f"画布: {sheet['title']}")
+        print(f"根主题: {sheet['rootTopic']['title']}")
+        
+        # 访问标签
+        if sheet['rootTopic']['labels']:
+            print(f"标签: {sheet['rootTopic']['labels']}")
+        
+        # 访问概要
+        if sheet['summaries']:
+            print(f"概要数量: {len(sheet['summaries'])}")
+            for summary in sheet['summaries']:
+                print(f"  - {summary['title']}")
+        
+        # 访问关联线
+        if sheet['relationships']:
+            print(f"关联线数量: {len(sheet['relationships'])}")
+    
+    # 方法2：打印结构（调试用）
+    parser.print_structure()
+    
+    # 方法3：保存为JSON
+    with open('xmind_data.json', 'w', encoding='utf-8') as f:
+        json.dump(full_data, f, ensure_ascii=False, indent=2)
+    
+    print("\n数据已保存到 xmind_data.json")
+
+
+if __name__ == '__main__':
+    # 使用示例
+    print("XMind 解析器使用示例：")
+    print("parser = XMindParser('your_file.xmind')")
+    print("data = parser.to_dict(include_all=True)")
+    print("\n支持提取的元素：")
+    print("- title（标题）")
+    print("- labels（标签）")
+    print("- markers（图标标记）")
+    print("- notes（备注）")
+    print("- summaries（概要）")
+    print("- relationships（关联线）")
+    print("- href（超链接）")
+    print("- image（图片）")
+    print("- style（样式）")
